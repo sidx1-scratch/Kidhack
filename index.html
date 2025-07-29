@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,28 +11,28 @@
     <h1>Login or Register</h1>
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
-    <button onclick="register()">Register</button>
+    <button id="loginBtn">Login</button>
+    <button id="registerBtn">Register</button>
   </div>
 
   <div class="container" id="main-app" style="display:none;">
     <h1>👨‍💻 Welcome, <span id="userEmail"></span>!</h1>
-    <button onclick="logout()">Logout</button>
+    <button id="logoutBtn">Logout</button>
 
     <h2>🛠 Create Team</h2>
     <input type="text" id="teamName" placeholder="Team Name" />
-    <button onclick="createTeam()">Create</button>
+    <button id="createTeamBtn">Create</button>
 
     <h2>🔍 Find Collaborators</h2>
     <input type="text" id="searchUser" placeholder="Search email" />
-    <button onclick="searchUsers()">Search</button>
+    <button id="searchUsersBtn">Search</button>
     <div id="searchResults"></div>
 
     <h2>📤 Submit Project</h2>
     <input type="text" id="projectTitle" placeholder="Project Title" />
     <input type="url" id="projectLink" placeholder="Project Link" />
     <textarea id="projectDescription" placeholder="Project Description"></textarea>
-    <button onclick="submitProject()">Submit</button>
+    <button id="submitProjectBtn">Submit</button>
 
     <h2>🌟 Team Projects</h2>
     <div id="projectList"></div>
