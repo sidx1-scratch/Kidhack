@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KidHack Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container" id="auth-container">
+    <h1>Login or Register</h1>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <button onclick="register()">Register</button>
+  </div>
+
+  <div class="container" id="main-app" style="display:none;">
+    <h1>👨‍💻 Welcome, <span id="userEmail"></span>!</h1>
+    <button onclick="logout()">Logout</button>
+
+    <h2>🛠 Create Team</h2>
+    <input type="text" id="teamName" placeholder="Team Name" />
+    <button onclick="createTeam()">Create</button>
+
+    <h2>🔍 Find Collaborators</h2>
+    <input type="text" id="searchUser" placeholder="Search email" />
+    <button onclick="searchUsers()">Search</button>
+    <div id="searchResults"></div>
+
+    <h2>📤 Submit Project</h2>
+    <input type="text" id="projectTitle" placeholder="Project Title" />
+    <input type="url" id="projectLink" placeholder="Project Link" />
+    <textarea id="projectDescription" placeholder="Project Description"></textarea>
+    <button onclick="submitProject()">Submit</button>
+
+    <h2>🌟 Team Projects</h2>
+    <div id="projectList"></div>
+  </div>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
