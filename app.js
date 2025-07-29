@@ -1,7 +1,15 @@
-
 import { auth, db } from './firebase-config.js';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+import {
+  collection, addDoc, query, where, getDocs,
+  updateDoc, arrayUnion, doc
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const authContainer = document.getElementById('auth-container');
 const mainApp = document.getElementById('main-app');
@@ -69,6 +77,29 @@ window.searchUsers = async () => {
     const d = document.createElement("div");
     d.textContent = `Team: ${doc.data().name} (Owner: ${doc.data().owner})`;
     div.appendChild(d);
+  });
+};
+
+window.searchAndJoinTeams = async () => {
+  const search = document.getElementById('teamSearch').value;
+  const q = query(collection(db, "teams"), where("name", ">=", search));
+  const results = await getDocs(q);
+  const div = document.getElementById('joinTeamResults');
+  div.innerHTML = "";
+  results.forEach(snapshot => {
+    const data = snapshot.data();
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = `<b>${data.name}</b> (Owner: ${data.owner})<br/>`;
+    const joinBtn = document.createElement("button");
+    joinBtn.textContent = "Join Team";
+    joinBtn.onclick = async () => {
+      await updateDoc(doc(db, "teams", snapshot.id), {
+        members: arrayUnion(auth.currentUser.email)
+      });
+      alert("Joined team!");
+    };
+    wrapper.appendChild(joinBtn);
+    div.appendChild(wrapper);
   });
 };
 
