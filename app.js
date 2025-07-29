@@ -1,117 +1,175 @@
-import { auth, db } from './firebase-config.js';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { 
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
-import {
-  collection, addDoc, query, where, getDocs,
-  updateDoc, arrayUnion, doc
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { 
+  getFirestore, collection, addDoc, query, where, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-const authContainer = document.getElementById('auth-container');
-const mainApp = document.getElementById('main-app');
-const userEmail = document.getElementById('userEmail');
+import { app } from "./firebase-config.js";
 
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// UI Elements
+const authContainer = document.getElementById("auth-container");
+const mainApp = document.getElementById("main-app");
+const userEmailSpan = document.getElementById("userEmail");
+const loginBtn = document.getElementById("loginBtn");
+const registerBtn = document.getElementById("registerBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const createTeamBtn = document.getElementById("createTeamBtn");
+const teamNameInput = document.getElementById("teamName");
+
+const searchUsersBtn = document.getElementById("searchUsersBtn");
+const searchUserInput = document.getElementById("searchUser");
+const searchResultsDiv = document.getElementById("searchResults");
+
+const submitProjectBtn = document.getElementById("submitProjectBtn");
+const projectTitleInput = document.getElementById("projectTitle");
+const projectLinkInput = document.getElementById("projectLink");
+const projectDescriptionInput = document.getElementById("projectDescription");
+const projectListDiv = document.getElementById("projectList");
+
+// Auth State Listener
 onAuthStateChanged(auth, user => {
   if (user) {
-    authContainer.style.display = 'none';
-    mainApp.style.display = 'block';
-    userEmail.textContent = user.email;
+    authContainer.style.display = "none";
+    mainApp.style.display = "block";
+    userEmailSpan.textContent = user.email;
     loadProjects();
   } else {
-    authContainer.style.display = 'block';
-    mainApp.style.display = 'none';
+    authContainer.style.display = "block";
+    mainApp.style.display = "none";
+    userEmailSpan.textContent = "";
   }
 });
 
-window.register = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  await createUserWithEmailAndPassword(auth, email, password);
-};
+// Register
+registerBtn.addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("Registered and logged in!");
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
+});
 
-window.login = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  await signInWithEmailAndPassword(auth, email, password);
-};
+// Login
+loginBtn.addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
+});
 
-window.logout = async () => {
+// Logout
+logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
-};
+});
 
-window.createTeam = async () => {
-  const teamName = document.getElementById('teamName').value;
-  await addDoc(collection(db, "teams"), {
-    owner: auth.currentUser.email,
-    name: teamName,
-    members: [auth.currentUser.email]
-  });
-  alert("Team created!");
-};
+// Create Team
+createTeamBtn.addEventListener("click", async () => {
+  const teamName = teamNameInput.value.trim();
+  if (!teamName) {
+    alert("Team name cannot be empty");
+    return;
+  }
+  try {
+    await addDoc(collection(db, "teams"), {
+      name: teamName,
+      createdBy: auth.currentUser.uid,
+      members: [auth.currentUser.uid],
+      createdAt: new Date()
+    });
+    alert(`Team "${teamName}" created!`);
+    teamNameInput.value = "";
+  } catch (e) {
+    alert("Error creating team: " + e.message);
+  }
+});
 
-window.submitProject = async () => {
-  const title = document.getElementById('projectTitle').value;
-  const link = document.getElementById('projectLink').value;
-  const description = document.getElementById('projectDescription').value;
-  await addDoc(collection(db, "projects"), {
-    owner: auth.currentUser.email,
-    title,
-    link,
-    description
-  });
-  alert("Project submitted!");
-  loadProjects();
-};
-
-window.searchUsers = async () => {
-  const search = document.getElementById('searchUser').value;
-  const q = query(collection(db, "teams"), where("members", "array-contains", search));
-  const results = await getDocs(q);
-  const div = document.getElementById('searchResults');
-  div.innerHTML = "";
-  results.forEach(doc => {
-    const d = document.createElement("div");
-    d.textContent = `Team: ${doc.data().name} (Owner: ${doc.data().owner})`;
-    div.appendChild(d);
-  });
-};
-
-window.searchAndJoinTeams = async () => {
-  const search = document.getElementById('teamSearch').value;
-  const q = query(collection(db, "teams"), where("name", ">=", search));
-  const results = await getDocs(q);
-  const div = document.getElementById('joinTeamResults');
-  div.innerHTML = "";
-  results.forEach(snapshot => {
-    const data = snapshot.data();
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = `<b>${data.name}</b> (Owner: ${data.owner})<br/>`;
-    const joinBtn = document.createElement("button");
-    joinBtn.textContent = "Join Team";
-    joinBtn.onclick = async () => {
-      await updateDoc(doc(db, "teams", snapshot.id), {
-        members: arrayUnion(auth.currentUser.email)
+// Search Users by Email
+searchUsersBtn.addEventListener("click", async () => {
+  const searchEmail = searchUserInput.value.trim();
+  if (!searchEmail) {
+    alert("Please enter an email to search.");
+    return;
+  }
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", searchEmail));
+    const querySnapshot = await getDocs(q);
+    searchResultsDiv.innerHTML = "";
+    if (querySnapshot.empty) {
+      searchResultsDiv.textContent = "No users found.";
+    } else {
+      querySnapshot.forEach(doc => {
+        const user = doc.data();
+        const div = document.createElement("div");
+        div.textContent = user.email;
+        searchResultsDiv.appendChild(div);
       });
-      alert("Joined team!");
-    };
-    wrapper.appendChild(joinBtn);
-    div.appendChild(wrapper);
-  });
-};
+    }
+  } catch (e) {
+    alert("Error searching users: " + e.message);
+  }
+});
 
+// Submit Project
+submitProjectBtn.addEventListener("click", async () => {
+  const title = projectTitleInput.value.trim();
+  const link = projectLinkInput.value.trim();
+  const description = projectDescriptionInput.value.trim();
+  if (!title || !link) {
+    alert("Project title and link are required.");
+    return;
+  }
+  try {
+    await addDoc(collection(db, "projects"), {
+      title,
+      link,
+      description,
+      owner: auth.currentUser.uid,
+      createdAt: new Date()
+    });
+    alert("Project submitted!");
+    projectTitleInput.value = "";
+    projectLinkInput.value = "";
+    projectDescriptionInput.value = "";
+    loadProjects();
+  } catch (e) {
+    alert("Error submitting project: " + e.message);
+  }
+});
+
+// Load Projects for current user
 async function loadProjects() {
-  const q = query(collection(db, "projects"));
-  const results = await getDocs(q);
-  const div = document.getElementById('projectList');
-  div.innerHTML = "";
-  results.forEach(doc => {
-    const d = document.createElement("div");
-    d.className = "project";
-    d.innerHTML = `<h3>${doc.data().title}</h3><p>${doc.data().description}</p><a href="${doc.data().link}" target="_blank">View</a>`;
-    div.appendChild(d);
-  });
+  projectListDiv.innerHTML = "";
+  try {
+    const projectsRef = collection(db, "projects");
+    const q = query(projectsRef, where("owner", "==", auth.currentUser.uid));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+      projectListDiv.textContent = "No projects submitted yet.";
+    } else {
+      querySnapshot.forEach(doc => {
+        const proj = doc.data();
+        const div = document.createElement("div");
+        div.innerHTML = `<h3>${proj.title}</h3>
+          <a href="${proj.link}" target="_blank">${proj.link}</a>
+          <p>${proj.description || ""}</p>`;
+        projectListDiv.appendChild(div);
+      });
+    }
+  } catch (e) {
+    projectListDiv.textContent = "Error loading projects.";
+  }
 }
